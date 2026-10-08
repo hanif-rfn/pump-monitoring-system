@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "1006639601652",
+    "firebase_url": "https://ta-monitoring-pompa-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "ta-monitoring-pompa",
+    "storage_bucket": "ta-monitoring-pompa.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1006639601652:android:dd28bf6d42b2618663cba1",
+        "android_client_info": {
+          "package_name": "com.example.monitoring_pompa"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDTbdoSm8pT0CV7vKtbGxLJ3LKyOdlss18"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

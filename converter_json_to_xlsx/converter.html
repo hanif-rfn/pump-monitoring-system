@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Konverter JSON Firebase ke Excel</title>
+  <!-- Pustaka SheetJS untuk membentuk file XLSX di browser -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 40px auto;
+      max-width: 600px;
+      color: #333;
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    #drop-area {
+      border: 2px dashed #007bff;
+      border-radius: 8px;
+      padding: 50px 20px;
+      text-align: center;
+      background: #f8f9fa;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    #drop-area.hover {
+      background: #e2e6ea;
+      border-color: #0056b3;
+    }
+    #file-input {
+      display: none;
+    }
+    #status {
+      margin-top: 20px;
+      padding: 12px;
+      border-radius: 6px;
+      display: none;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    .info {
+      background-color: #cce5ff;
+      color: #004085;
+      border: 1px solid #b8daff;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Konverter Log Firebase ke Excel</h2>
+
+  <div id="drop-area">
+    <p style="margin: 0; font-size: 16px;">Tarik & lepaskan berkas <b>.json</b> ke sini</p>
+    <p style="margin: 10px 0 0; font-size: 13px; color: #666;">atau klik untuk memilih berkas dari komputer</p>
+    <input type="file" id="file-input" accept=".json">
+  </div>
+
+  <div id="status"></div>
+
+  <script>
+    const dropArea = document.getElementById('drop-area');
+    const fileInput = document.getElementById('file-input');
+    const statusDiv = document.getElementById('status');
+
+    function tampilkanStatus(pesan, tipe) {
+      statusDiv.innerHTML = pesan;
+      statusDiv.className = tipe;
+      statusDiv.style.display = 'block';
+    }
+
+    // Format epoch milliseconds ke format waktu lokal YYYY-MM-DD HH:MM:SS (WIB / UTC+7)
+    function formatWIB(tsRaw) {
+      if (!tsRaw || isNaN(tsRaw)) return '-';
+      const d = new Date(Number(tsRaw));
+      
+      // Ambil komponen waktu UTC dan tambahkan offset 7 jam
+      const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
+      const wibDate = new Date(utc + (7 * 3600000));
+
+      const thn = wibDate.getFullYear();
+      const bln = String(wibDate.getMonth() + 1).padStart(2, '0');
+      const tgl = String(wibDate.getDate()).padStart(2, '0');
+      const jam = String(wibDate.getHours()).padStart(2, '0');
+      const mnt = String(wibDate.getMinutes()).padStart(2, '0');
+      const dtk = String(wibDate.getSeconds()).padStart(2, '0');
+
+      return `${thn}-${bln}-${tgl} ${jam}:${mnt}:${dtk}`;
+    }
+
+    function prosesFile(file) {
+      if (!file.name.endsWith('.json')) {
+        tampilkanStatus('Berkas harus berekstensi .json!', 'error');
+        return;
+      }
+
+      tampilkanStatus('Membaca berkas JSON...', 'info');
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const db = JSON.parse(e.target.result);
+          
+          const wb = XLSX.utils.book_new();
+          const historyNode = db.history || {};
+          const alarmNode = db.alarm_logs || {};
+
+          let totalPompa1 = 0;
+          let totalPompa2 = 0;
+          let totalAlarm = 0;
+
+          // 1. Parsing Pompa 1
+          if (historyNode.pompa_1) {
+            const rowsP1 = [];
+            for (const [key, val] of Object.entries(historyNode.pompa_1)) {
+              rowsP1.push({
+                'Record_ID': key,
+                'Waktu (WIB)': formatWIB(val.timestamp),
+                'Tegangan (V)': val.tegangan !== undefined ? Number(Number(val.tegangan).toFixed(2)) : 0,
+                'Arus (A)': val.arus !== undefined ? Number(Number(val.arus).toFixed(3)) : 0,
+                'Daya (kW)': val.daya !== undefined ? Number(Number(val.daya).toFixed(4)) : 0,
+                'Faktor Daya': val.faktor_daya !== undefined ? Number(Number(val.faktor_daya).toFixed(2)) : 0,
+                'Suhu (°C)': val.suhu !== undefined ? Number(Number(val.suhu).toFixed(2)) : 0
+              });
+            }
+            rowsP1.sort((a, b) => a['Waktu (WIB)'].localeCompare(b['Waktu (WIB)']));
+            totalPompa1 = rowsP1.length;
+            const wsP1 = XLSX.utils.json_to_sheet(rowsP1);
+            XLSX.utils.book_append_sheet(wb, wsP1, 'Log_Pompa_1');
+          }
+
+          // 2. Parsing Pompa 2
+          if (historyNode.pompa_2) {
+            const rowsP2 = [];
+            for (const [key, val] of Object.entries(historyNode.pompa_2)) {
+              rowsP2.push({
+                'Record_ID': key,
+                'Waktu (WIB)': formatWIB(val.timestamp),
+                'Tegangan (V)': val.tegangan !== undefined ? Number(Number(val.tegangan).toFixed(2)) : 0,
+                'Arus (A)': val.arus !== undefined ? Number(Number(val.arus).toFixed(3)) : 0,
+                'Daya (kW)': val.daya !== undefined ? Number(Number(val.daya).toFixed(4)) : 0,
+                'Faktor Daya': val.faktor_daya !== undefined ? Number(Number(val.faktor_daya).toFixed(2)) : 0,
+                'Suhu (°C)': val.suhu !== undefined ? Number(Number(val.suhu).toFixed(2)) : 0
+              });
+            }
+            rowsP2.sort((a, b) => a['Waktu (WIB)'].localeCompare(b['Waktu (WIB)']));
+            totalPompa2 = rowsP2.length;
+            const wsP2 = XLSX.utils.json_to_sheet(rowsP2);
+            XLSX.utils.book_append_sheet(wb, wsP2, 'Log_Pompa_2');
+          }
+
+          // 3. Parsing Alarm Logs
+          if (typeof alarmNode === 'object' && Object.keys(alarmNode).length > 0) {
+            const rowsAlarm = [];
+            for (const [key, val] of Object.entries(alarmNode)) {
+              rowsAlarm.push({
+                'Alarm_ID': key,
+                'Waktu': val.waktu || formatWIB(val.timestamp),
+                'Pompa': val.pompa || '-',
+                'Status': val.status || '-',
+                'Keterangan': val.keterangan || '-'
+              });
+            }
+            rowsAlarm.sort((a, b) => String(a['Waktu']).localeCompare(String(b['Waktu'])));
+            totalAlarm = rowsAlarm.length;
+            const wsAlarm = XLSX.utils.json_to_sheet(rowsAlarm);
+            XLSX.utils.book_append_sheet(wb, wsAlarm, 'Log_Alarm');
+          }
+
+          if (totalPompa1 === 0 && totalPompa2 === 0 && totalAlarm === 0) {
+            tampilkanStatus('Tidak ditemukan data history atau alarm_logs dalam berkas ini.', 'error');
+            return;
+          }
+
+          // Unduh langsung file Excel
+          const namaHasil = file.name.replace('.json', '') + '_rapi.xlsx';
+          XLSX.writeFile(wb, namaHasil);
+
+          tampilkanStatus(
+            `<b>Konversi Berhasil!</b><br>` +
+            `- Pompa 1: ${totalPompa1} baris<br>` +
+            `- Pompa 2: ${totalPompa2} baris<br>` +
+            `- Alarm Logs: ${totalAlarm} baris<br>` +
+            `Berkas <b>${namaHasil}</b> otomatis terunduh.`,
+            'success'
+          );
+
+        } catch (err) {
+          tampilkanStatus('Terjadi kesalahan saat memproses JSON: ' + err.message, 'error');
+        }
+      };
+
+      reader.onerror = function() {
+        tampilkanStatus('Gagal membaca berkas.', 'error');
+      };
+
+      reader.readAsText(file);
+    }
+
+    // Event Listener Drag and Drop & File Selector
+    dropArea.addEventListener('click', () => fileInput.click());
+
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files.length > 0) {
+        prosesFile(e.target.files[0]);
+      }
+    });
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+      dropArea.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        dropArea.classList.add('hover');
+      }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+      dropArea.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        dropArea.classList.remove('hover');
+      }, false);
+    });
+
+    dropArea.addEventListener('drop', (e) => {
+      const dt = e.dataTransfer;
+      if (dt.files.length > 0) {
+        prosesFile(dt.files[0]);
+      }
+    });
+  </script>
+</body>
+</html>

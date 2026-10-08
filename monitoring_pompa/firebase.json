@@ -1,0 +1,36 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "ta-monitoring-pompa",
+          "appId": "1:1006639601652:android:dd28bf6d42b2618663cba1",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "ta-monitoring-pompa",
+          "configurations": {
+            "android": "1:1006639601652:android:dd28bf6d42b2618663cba1",
+            "web": "1:1006639601652:web:f1188d7e637291a263cba1"
+          }
+        }
+      }
+    }
+  },
+  "hosting": {
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  }
+}
